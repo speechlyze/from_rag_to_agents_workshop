@@ -16,6 +16,7 @@ services:
       start_period: 120s
     volumes:
       - oracle-data:/opt/oracle/oradata
+      - ./oracle-init:/container-entrypoint-initdb.d
 
 volumes:
   oracle-data:

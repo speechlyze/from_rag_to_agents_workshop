@@ -1,8 +1,8 @@
-# Part 1: Oracle AI Database Setup & Connection
+# Part 1: Oracle AI Database Setup & Connection [Database Core]
 
 ## What You Are Working With
 
-Oracle AI Database 23ai (and 26ai) is a **converged database** built for AI developers. It unifies relational, document, graph, and vector data in a single engine with native support for:
+Oracle AI Database 23ai (and 26ai) is a **converged database** built for AI developers. It is not a separate AI product — it is the core Oracle Database engine with native support for:
 
 - **`VECTOR` column type** — stores embeddings as first-class SQL values
 - **HNSW indexes** — approximate nearest-neighbour search directly in SQL
@@ -10,7 +10,7 @@ Oracle AI Database 23ai (and 26ai) is a **converged database** built for AI deve
 - **Oracle Text indexes** — full-text keyword search with `CONTAINS()`
 - **SQL Property Graphs** — graph traversal with `GRAPH_TABLE()`
 
-This means your retrieval pipeline — keyword, vector, hybrid, and graph — all live in a single, queryable, ACID-compliant database.
+This means your entire retrieval pipeline — keyword, vector, hybrid, and graph — all live in a single, queryable, ACID-compliant database. Not a collection of services bolted together.
 
 ## Your Environment
 
@@ -25,9 +25,9 @@ In this Codespace, Oracle AI Database is already running as a Docker service (`g
 | App user | `VECTOR` |
 | App user password | `VectorPwd_2025` |
 
-You will connect as the `VECTOR` user for all workshop tasks.
+You will connect as the `VECTOR` user for all workshop tasks. This is a dedicated schema for storing embeddings and research data — it follows the principle of least privilege rather than connecting as SYS.
 
-## TODO: Implement `connect_to_oracle`
+## TODO 1: Implement `connect_to_oracle`
 
 **Why retry logic?** Docker healthchecks verify the container is running, but Oracle's listener can take a few extra seconds to become fully ready after the healthcheck passes. A retry loop makes the connection resilient to this transient window.
 
@@ -72,9 +72,11 @@ def connect_to_oracle(max_retries=3, retry_delay=5):
                 raise
 ```
 
+**Key concept:** The `SELECT banner FROM v$version` query serves as a health check — if this succeeds, the database is fully operational and ready for subsequent operations. Printing the banner also confirms which Oracle version you are connected to.
+
 ## Property Graph Privileges
 
-The notebook also grants `CREATE PROPERTY GRAPH` privileges via a SYS connection. This is needed for Part 4 (graph retrieval). The helper function `ensure_property_graph_privileges()` is pre-built for you.
+`CREATE PROPERTY GRAPH` privileges are needed for Part 4 (graph retrieval). These are granted automatically during Codespace setup — no action needed in the notebook.
 
 ## Troubleshooting
 
@@ -84,4 +86,4 @@ The notebook also grants `CREATE PROPERTY GRAPH` privileges via a SYS connection
 
 **"ORA-01017: invalid username/password"** — Check you are using `VECTOR` / `VectorPwd_2025`.
 
-**"Could not reach Oracle after all retries"** — Rebuild the Codespace: `Codespaces: Rebuild Container`.
+**"Could not reach Oracle after all retries"** — Rebuild the Codespace from the VS Code command palette: `Codespaces: Rebuild Container`.

@@ -8,26 +8,22 @@
 
 ## What You Will Build
 
-Starting from raw data, you will construct:
-
-1. **5 Retrieval Strategies** — keyword, vector, hybrid (pre-filter, post-filter, RRF), and graph-based retrieval, all running natively in Oracle
-2. **End-to-End RAG Pipeline** — retrieve evidence from Oracle, format context, and generate grounded answers with OpenAI
-3. **AI Agents with Tools** — wrap Oracle retrieval as callable tools using the OpenAI Agents SDK
-4. **Multi-Agent Orchestration** — compose specialist agents (research retriever, conversation retriever, orchestrator, synthesizer) into a production-like workflow
-5. **Persistent Session Memory** — build an `OracleSession` adapter for durable, queryable conversation memory
+Starting from raw data, you will construct a **Research Paper Assistant** — a multi-agent system that retrieves, reasons over, and discusses 1,000 ArXiv papers stored in Oracle AI Database. Along the way you'll implement five retrieval strategies, build an end-to-end RAG pipeline, wrap retrieval as agent tools, compose a multi-agent orchestration system, and finish with persistent session memory backed by Oracle.
 
 ## Workshop Parts
 
 | Part | Topic | Guide |
-|------|-------|-------|
-| 1 | Oracle AI Database Setup & Connection | [Part 1 Guide](docs/part-1-oracle-setup.md) |
-| 2 | Data Loading & Embedding Generation | [Part 2 Guide](docs/part-2-data-loading.md) |
-| 3 | Database Table Setup & Data Ingestion | [Part 3 Guide](docs/part-3-table-setup.md) |
-| 4 | Retrieval Mechanisms (keyword, vector, hybrid, graph) | [Part 4 Guide](docs/part-4-retrieval.md) |
-| 5 | Building a RAG Pipeline | [Part 5 Guide](docs/part-5-rag-pipeline.md) |
-| 6 | AI Agents — Basics & Tools | [Part 6 Guide](docs/part-6-agents-basics.md) |
-| 7 | Agent Orchestration & Chat System | [Part 7 Guide](docs/part-7-orchestration.md) |
-| 8 | Session Memory with Oracle AI Database | [Part 8 Guide](docs/part-8-session-memory.md) |
+|---|---|---|
+| 1 | Oracle AI Database setup and connection | [Part 1 Guide](docs/part-1-oracle-setup.md) |
+| 2 | Data loading and embedding generation | [Part 2 Guide](docs/part-2-data-loading.md) |
+| 3 | Database table setup and data ingestion | [Part 3 Guide](docs/part-3-table-setup.md) |
+| 4 | Retrieval mechanisms (keyword, vector, hybrid, graph) | [Part 4 Guide](docs/part-4-retrieval.md) |
+| 5 | Building a RAG pipeline | [Part 5 Guide](docs/part-5-rag-pipeline.md) |
+| 6 | AI agents — basics and tools | [Part 6 Guide](docs/part-6-agents-basics.md) |
+| 7 | Agent orchestration and chat system | [Part 7 Guide](docs/part-7-orchestration.md) |
+| 8 | Session memory with Oracle AI Database | [Part 8 Guide](docs/part-8-session-memory.md) |
+
+> **[TODO Checklist](docs/TODO-checklist.md)** — all 8 tasks at a glance with links to their guide sections.
 
 ## Getting Started
 
@@ -64,7 +60,7 @@ Starting from raw data, you will construct:
    ![Database ready](images/database_ready.png)
 
 6. Open [`workshop/notebook_student.ipynb`](workshop/notebook_student.ipynb) in the file explorer
-7. Select the **Python 3** kernel from the top-right kernel picker
+7. Select the **From RAG to Agents Workshop** kernel from the top-right kernel picker
 8. Follow the notebook cells top to bottom, using the part guides in `docs/` when you hit a TODO
 
 You will need:
@@ -85,12 +81,6 @@ docker compose -f .devcontainer/docker-compose.yml up -d oracle
 # Install dependencies
 pip install -r requirements.txt
 
-# Wait ~2 minutes for Oracle, then configure vector memory
-docker exec oracle-free bash -c \
-  "echo 'ALTER SYSTEM SET vector_memory_size=512M SCOPE=SPFILE;' | \
-   sqlplus -s sys/OraclePwd_2025@localhost:1521/FREE as sysdba"
-docker restart oracle-free
-
 # Launch Jupyter
 jupyter lab workshop/notebook_student.ipynb
 ```
@@ -100,14 +90,18 @@ Wait approximately 2 minutes for Oracle to initialise before running notebook ce
 ## Workshop Files
 
 ```
-from_rag_to_agents_workshop/
+from-rag-to-agents-workshop/
 ├── .devcontainer/
-│   ├── devcontainer.json      Codespaces configuration
-│   ├── docker-compose.yml     Oracle container definition
-│   └── setup.sh               Dependency installation and Oracle health check
+│   ├── devcontainer.json       Codespaces configuration
+│   ├── docker-compose.yml      Oracle AI Database container
+│   ├── setup_build.sh          Dependency installation and kernel registration
+│   ├── setup_runtime.sh        Oracle startup and vector memory configuration
+│   ├── start_oracle.sh         Oracle health check on Codespace restart
+│   └── oracle-init/
+│       └── 01_vector_memory.sql  Vector memory pool initialisation
 ├── workshop/
-│   ├── notebook_student.ipynb   Your working notebook (contains TODO gaps)
-│   └── notebook_complete.ipynb  Complete reference (do not open until done)
+│   ├── notebook_student.ipynb    Your working notebook (contains TODO gaps)
+│   └── notebook_complete.ipynb   Complete reference (do not open until done)
 ├── docs/
 │   ├── part-1-oracle-setup.md
 │   ├── part-2-data-loading.md
@@ -116,7 +110,8 @@ from_rag_to_agents_workshop/
 │   ├── part-5-rag-pipeline.md
 │   ├── part-6-agents-basics.md
 │   ├── part-7-orchestration.md
-│   └── part-8-session-memory.md
+│   ├── part-8-session-memory.md
+│   └── TODO-checklist.md
 ├── images/
 ├── requirements.txt
 └── README.md
@@ -125,10 +120,16 @@ from_rag_to_agents_workshop/
 ## Stack
 
 - Oracle AI Database via `gvenzl/oracle-free:23-slim`
-- `sentence-transformers` — local embedding model (nomic-embed-text-v1.5, 768-dim)
+- `sentence-transformers` — local embedding model (nomic-embed-text-v1.5, 768-dim), no API key needed
 - `oracledb` — Python Oracle driver
 - `OpenAI API` — LLM generation (GPT-4o)
 - `openai-agents` — Agent SDK (Agent, Runner, function_tool, orchestration)
+
+## Where to Next?
+
+- **[Oracle AI Developer Hub](https://github.com/oracle-devrel/oracle-ai-developer-hub)** — More technical assets, samples, and projects with Oracle AI
+- **[Oracle Developer Resource](https://www.oracle.com/developer/)** — Documentation, tools, and community for Oracle developers
+- **[OpenAI Agents SDK Documentation](https://openai.github.io/openai-agents-python/)** — Full reference for the Agent SDK used in Parts 6-8
 
 ---
 

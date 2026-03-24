@@ -1,20 +1,26 @@
-# Part 5: Building a RAG Pipeline
+# Part 5: Building a RAG Pipeline [Generation Layer]
 
-## Overview
+## What You Are Building
 
-In this part you connect retrieval to generation end-to-end:
+In Parts 2-4 you built the retrieval layer. Now you connect it to generation — completing the Retrieval-Augmented Generation pipeline end to end:
+
 1. Configure OpenAI API access
-2. Initialize and smoke-test the client
+2. Initialise and smoke-test the client
 3. Build a reusable RAG function that supports all retrieval modes
 4. Run an end-to-end query
 
-## 5.1 Configure API Access
+The result is a single function that takes a user question, retrieves relevant papers from Oracle, and generates a grounded, cited answer using OpenAI.
+
+## Configure API Access
 
 We use a `set_env_securely()` helper with `getpass` to set `OPENAI_API_KEY` without exposing it in notebook output.
 
-## 5.2 Initialize the OpenAI Client
+**Why `getpass`?** Notebook cells are often shared or screenshotted. `getpass` ensures the API key never appears in cell output, even if the notebook is exported.
+
+## Initialise the OpenAI Client
 
 A simple smoke test confirms credentials work:
+
 ```python
 from openai import OpenAI
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -25,23 +31,26 @@ response = openai_client.responses.create(
 )
 ```
 
-## TODO: Implement `research_paper_assistant_rag_pipeline`
+---
 
-This is the core RAG function. It must:
+## TODO 5: Implement `research_paper_assistant_rag_pipeline`
 
+This is the core RAG function. It connects retrieval (Part 4) to generation (OpenAI) in a single callable pipeline.
+
+**Requirements:**
 1. **Select retrieval strategy** based on `retrieval_mode` parameter (keyword, vector, hybrid, graph)
 2. **Call the appropriate retrieval function** from Part 4
-3. **Format retrieved rows** into citation-ready context with titles, abstracts, snippets, and scores
+3. **Format retrieved rows** into citation-ready context with titles, abstracts, and scores
 4. **Construct a prompt** that includes the user query and formatted context
 5. **Call the OpenAI Responses API** with grounding instructions
 6. **Return** the generated text
 
-**Key design decisions:**
-- The function should work with any retrieval mode by routing to the correct function
-- Context formatting should include numbered citations `[1]`, `[2]`, etc.
-- The LLM prompt should instruct the model to cite sources and avoid speculation
+**Why route by mode?** Different queries benefit from different retrieval strategies. A single function that accepts a `retrieval_mode` parameter lets the caller (or a future agent) choose the best strategy per query without duplicating the generation logic.
+
+**Why numbered citations?** Citations like `[1]`, `[2]` create a verifiable chain from the generated answer back to specific papers. Without them, the user cannot distinguish grounded claims from hallucination.
 
 **Complete solution:**
+
 ```python
 def research_paper_assistant_rag_pipeline(
     conn, embedding_model, user_query, top_k=10,
@@ -86,8 +95,14 @@ def research_paper_assistant_rag_pipeline(
     return response.output_text
 ```
 
+**Key concept:** The `temperature=0.3` setting makes the model more deterministic. For RAG, you want the model to faithfully report what the retrieved papers say — not to be creative. Lower temperature reduces hallucination risk at the cost of some variety.
+
+**What `instructions` vs `input` does:** The `instructions` field is the system-level directive (how to behave). The `input` field is the user-level content (what to answer). Separating them gives the model clear role boundaries.
+
 ## Troubleshooting
 
 **"Invalid API key"** — Re-run the `set_env_securely` cell with a valid OpenAI key.
 
-**Empty retrieval** — Check Part 4 functions work independently before debugging the pipeline.
+**Empty retrieval** — Check Part 4 functions work independently before debugging the pipeline. Run a vector search directly and verify it returns results.
+
+**Low-quality answers** — Check that `formatted_context` is not empty. If retrieval returns results but the context is blank, the `dict(zip(columns, row))` mapping may have a column name mismatch — print `columns` to debug.

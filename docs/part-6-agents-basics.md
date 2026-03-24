@@ -1,15 +1,16 @@
-# Part 6: AI Agents — Basics & Tools
+# Part 6: AI Agents — Basics & Tools [Agent Foundation]
 
-## Overview
+## What You Are Building
 
-In this part you move from a single RAG call to an agentic system. You will:
+In this part you move from a single RAG call to an agentic system. The key shift: instead of you choosing the retrieval strategy, the agent decides which tools to call and how to combine results.
+
 1. Install the OpenAI Agents SDK
 2. Create a baseline agent (no tools)
 3. Expose Oracle retrieval as a callable tool
 4. Add a second tool for past research conversations
 5. Strengthen agent instructions for tool routing
 
-## 6.1 Install Agent Runtime
+## Install Agent Runtime
 
 ```python
 %pip install -Uq --no-cache-dir openai openai-agents
@@ -17,7 +18,7 @@ In this part you move from a single RAG call to an agentic system. You will:
 
 This installs the `agents` package which provides `Agent`, `Runner`, `function_tool`, and orchestration primitives.
 
-## 6.2 Baseline Agent (No Tools)
+## Baseline Agent (No Tools)
 
 Start simple — define a research assistant and run a direct query:
 
@@ -32,11 +33,13 @@ research_paper_assistant = Agent(
 result = await Runner.run(research_paper_assistant, input="Summarize recent research on optimization")
 ```
 
-Without tools, the agent can only answer from its parametric knowledge.
+**Why start without tools?** This baseline demonstrates what the agent can do from parametric knowledge alone. The contrast with the tool-equipped agent in the next step makes the value of retrieval-augmented tools visible.
 
-## TODO: Implement `get_research_papers` Tool
+---
 
-Wrap the SQL retrieval functions from Part 4 in an `@function_tool` decorator so the agent can call them.
+## TODO 6: Implement `get_research_papers` Tool
+
+Wrap the SQL retrieval functions from Part 4 in an `@function_tool` decorator so the agent can call them autonomously.
 
 **Requirements:**
 1. Accept `user_query`, `retrieval_mode` (default "hybrid"), and `top_k` (default 5)
@@ -44,7 +47,12 @@ Wrap the SQL retrieval functions from Part 4 in an `@function_tool` decorator so
 3. Format results as a readable string with numbered citations
 4. Return the formatted string
 
+**Why `@function_tool`?** This decorator registers the function with the Agents SDK so the model can call it by name. The SDK handles the JSON schema generation from the function's type hints and docstring — the model sees the tool description and parameter types automatically.
+
+**The docstring matters.** It is what the agent reads to decide whether to call this tool. Write it as if you are explaining to the agent when and why to use it.
+
 **Complete solution:**
+
 ```python
 from agents.tool import function_tool
 
@@ -77,21 +85,25 @@ def get_research_papers(user_query: str, retrieval_mode: str = "hybrid", top_k: 
     return "\n".join(formatted)
 ```
 
-## 6.4 Second Tool: Past Research Conversations
+**Key concept:** The tool uses `conn` and `embedding_model` from the outer scope (closures). This is intentional — the agent should not manage database connections. The tool encapsulates all retrieval complexity behind a simple string-in, string-out interface.
 
-The `get_past_research_conversations` tool follows the same pattern but searches for prior analyses rather than raw papers. This gives the agent continuity across sessions.
+## Second Tool: Past Research Conversations
 
-## 6.5 Strengthening Agent Instructions
+The `get_past_research_conversations` tool follows the same `@function_tool` pattern but searches for prior analyses rather than raw papers. This gives the agent continuity — it can reference what it said in previous sessions.
+
+## Strengthening Agent Instructions
 
 Tool availability alone is not enough. Clear instructions make routing explicit:
 - When to call paper retrieval
 - When to call conversation retrieval
 - When to combine both
 
-This is a key lesson: **agent instructions are the control plane for tool selection.**
+**This is a key lesson: agent instructions are the control plane for tool selection.** A model with the right tools but vague instructions will under-use them. A model with clear instructions will consistently route queries to the right tool.
 
 ## Troubleshooting
 
 **"ImportError: cannot import name 'Agent'"** — Restart the kernel after installing `openai-agents`.
 
-**Agent doesn't call tools** — Check that tools are attached: `agent.tools.append(get_research_papers)`.
+**Agent doesn't call tools** — Check that tools are attached: `agent.tools.append(get_research_papers)`. Also verify the agent instructions explicitly describe when to use each tool.
+
+**Tool returns empty results** — The same debugging applies as Part 4. Test the retrieval function directly before blaming the agent.
