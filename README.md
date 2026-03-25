@@ -129,6 +129,10 @@ from-rag-to-agents-workshop/
 - `OpenAI API` — LLM generation (GPT-5)
 - `openai-agents` — Agent SDK (Agent, Runner, function_tool, orchestration)
 
+## Presentation Slides
+
+A PDF version of the workshop presentation is available at [`docs/rags_to_agent.pdf`](docs/rags_to_agent.pdf) for learners who want to follow along or review the material offline.
+
 ## Where to Next?
 
 - **[Oracle AI Developer Hub](https://github.com/oracle-devrel/oracle-ai-developer-hub)** — More technical assets, samples, and projects with Oracle AI
