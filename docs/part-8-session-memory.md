@@ -85,8 +85,45 @@ class OracleSession:
             self.conn.commit()
 
     async def pop_item(self, limit=None):
-        # Remove and return most recent item(s)
-        ...
+        """Remove and return the most recent item(s)."""
+        try:
+            with self.conn.cursor() as cur:
+                if not limit or limit <= 1:
+                    cur.execute(f"""
+                        SELECT id, message FROM {self.table_name}
+                        WHERE thread_id = :sid ORDER BY timestamp DESC
+                        FETCH FIRST 1 ROW ONLY
+                    """, {'sid': self.session_id})
+                    row = cur.fetchone()
+                    if row:
+                        item_id, message_clob = row
+                        message_str = message_clob.read() if hasattr(message_clob, 'read') else str(message_clob)
+                        item = json.loads(message_str)
+                        cur.execute(f"DELETE FROM {self.table_name} WHERE id = :id", {'id': item_id})
+                        self.conn.commit()
+                        return item
+                    return None
+                else:
+                    cur.execute(f"""
+                        SELECT id, message FROM {self.table_name}
+                        WHERE thread_id = :sid ORDER BY timestamp DESC
+                        FETCH FIRST :limit ROWS ONLY
+                    """, {'sid': self.session_id, 'limit': limit})
+                    rows = cur.fetchall()
+                    if not rows:
+                        return []
+                    items = []
+                    for row in rows:
+                        item_id, message_clob = row
+                        message_str = message_clob.read() if hasattr(message_clob, 'read') else str(message_clob)
+                        items.append(json.loads(message_str))
+                        cur.execute(f"DELETE FROM {self.table_name} WHERE id = :id", {'id': item_id})
+                    self.conn.commit()
+                    return items
+        except Exception as e:
+            print(f"Error popping item(s): {e}")
+            self.conn.rollback()
+            return None if (not limit or limit <= 1) else []
 
     async def clear_session(self):
         with self.conn.cursor() as cur:

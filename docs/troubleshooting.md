@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide covers the most common issues encountered during the Oracle Agent Memory Workshop and how to resolve them.
+This guide covers the most common issues encountered during the From RAG to Agents Workshop and how to resolve them.
 
 ---
 
@@ -112,7 +112,7 @@ docker logs oracle-free 2>&1 | tail -20
 
 ---
 
-### Jupyter kernel not found or "Oracle Agent Memory Workshop" kernel missing
+### Jupyter kernel not found or "From RAG to Agents Workshop" kernel missing
 
 **Symptom:** The notebook asks you to select a kernel and the workshop kernel is not listed.
 
@@ -121,7 +121,7 @@ docker logs oracle-free 2>&1 | tail -20
 **Fix:**
 
 ```bash
-pip install -q ipykernel && python -m ipykernel install --user --name workshop --display-name "Oracle Agent Memory Workshop"
+pip install -q ipykernel && python -m ipykernel install --user --name python3 --display-name "From RAG to Agents Workshop"
 ```
 
 Then reload the VS Code window (`Cmd/Ctrl + Shift + P` → `Developer: Reload Window`) and select the kernel again.
@@ -159,50 +159,59 @@ Then restart the kernel (`Kernel` → `Restart Kernel`) and re-run the cell.
 
 ---
 
-## LangChain and Package Issues
+## Package Issues
 
-### `ImportError` for `langchain_oracledb` or `langchain_huggingface`
+### `ImportError` for `openai_agents` or `sentence_transformers`
 
 **Symptom:** A cell fails with `ModuleNotFoundError`.
 
 **Cause:** The prebuild pip install did not complete, or the wrong kernel is selected.
 
-**Fix:** Confirm you are using the `Oracle Agent Memory Workshop` kernel (shown in the top right of the notebook). Then run:
+**Fix:** Confirm you are using the `From RAG to Agents Workshop` kernel (shown in the top right of the notebook). Then run:
 
 ```bash
-pip install -q langchain-oracledb langchain-huggingface langchain-openai
+pip install -q openai openai-agents sentence-transformers oracledb
 ```
 
 ---
 
-### HuggingFace model download is slow or times out
+### Sentence-transformers model download is slow or times out
 
-**Symptom:** The `HuggingFaceEmbeddings` cell hangs for several minutes on first run.
+**Symptom:** The `SentenceTransformer` cell hangs for several minutes on first run.
 
-**Cause:** The `sentence-transformers` model is being downloaded from HuggingFace on first use. This is a ~90MB download.
+**Cause:** The nomic-embed-text-v1.5 model is being downloaded from HuggingFace on first use. This is a ~550MB download.
 
 **Fix:** This is expected on first run. Wait for the download to complete — it will be cached for all subsequent cells. Do not interrupt the cell.
 
 ---
 
-### Tavily search returns no results or raises an authentication error
+## Agent SDK Issues
 
-**Symptom:** The web search tool fails or returns empty results.
+### `RuntimeError: This event loop is already running`
 
-**Cause:** `TAVILY_API_KEY` is missing or invalid.
+**Symptom:** Running `await Runner.run(...)` fails with an event loop error.
 
-**Fix:** Check the key is set:
+**Cause:** Jupyter already has an event loop running, and `nest_asyncio` was not applied before the async call.
 
-```python
-import os
-print(os.environ.get("TAVILY_API_KEY", "NOT SET"))
-```
-
-If it shows `NOT SET`, set it manually for this session:
+**Fix:** Ensure the `nest_asyncio` cell near the top of the notebook has been executed:
 
 ```python
-os.environ["TAVILY_API_KEY"] = "tvly-..."
+import asyncio
+import nest_asyncio
+nest_asyncio.apply()
 ```
+
+If you skipped it, run it now, then re-run the failing cell.
+
+---
+
+### Agent doesn't call tools
+
+**Symptom:** The agent returns a response but never invokes `get_research_papers` or other tools.
+
+**Cause:** Tools may not be attached to the agent, or instructions are too vague.
+
+**Fix:** Verify tools are registered: check the agent definition includes the tool in its `tools=[]` list. Also review the agent's `instructions` — they must explicitly describe when to use each tool.
 
 ---
 
@@ -215,7 +224,6 @@ import oracledb, os
 
 print("=== Environment ===")
 print("OPENAI_API_KEY:", "SET" if os.environ.get("OPENAI_API_KEY") else "NOT SET")
-print("TAVILY_API_KEY:", "SET" if os.environ.get("TAVILY_API_KEY") else "NOT SET")
 
 print("\n=== Oracle Connection ===")
 try:

@@ -64,19 +64,28 @@ Starting from raw data, you will construct a **Research Paper Assistant** — a 
    ![Database ready](images/database_ready.png)
 
 7. Open [`workshop/notebook_student.ipynb`](workshop/notebook_student.ipynb) in the file explorer
-8. Select the **From RAG to Agents Workshop** kernel from the top-right kernel picker
-9. Follow the notebook cells top to bottom, using the part guides in `docs/` when you hit a TODO
+8. Select the **Python 3.11** kernel:
 
-You will need:
-- A GitHub account (free)
-- An OpenAI API key — needed from Part 5 onwards
+   Click **Select Kernel** in the top-right corner of the notebook:
+
+   ![Select Kernel](images/select_kernel.png)
+
+   Choose **Python 3.11** from the list:
+
+   ![Select Python 3.11](images/select_kernel_python_3.11.png)
+
+   Confirm it shows as selected:
+
+   ![Kernel Selected](images/ensure_kernel_selected.png)
+
+9. Follow the notebook cells top to bottom, using the part guides in `docs/` when you hit a TODO
 
 > **Note:** On subsequent Codespace opens, Oracle should start automatically via `postStartCommand`. If you ever see a connection error in the notebook, run step 3 above again from the terminal.
 
 ### Option B: Local development
 
 ```bash
-git clone https://github.com/YOUR-ORG/from-rag-to-agents-workshop
+git clone https://github.com/speechlyze/from_rag_to_agents_workshop
 cd from-rag-to-agents-workshop
 
 # Start Oracle AI Database

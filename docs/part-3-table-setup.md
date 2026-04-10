@@ -48,47 +48,67 @@ PARAMETERS ('SYNC (ON COMMIT)')
 
 ---
 
-## TODO 1: Implement `create_research_papers_table`
+## TODO 1: Write the DDL to Create the `research_papers` Table
 
-Write a function that:
+Write a DDL string assigned to the `ddl` variable that:
 1. Drops dependent tables safely (paper_similarities, paper_authors, authors, research_papers)
 2. Creates the `research_papers` table with the correct VECTOR dimension
-3. Commits the transaction
+3. Separates statements with `/` (the notebook splits and executes each block)
 
 **Why drop in dependency order?** Oracle enforces foreign key constraints. If `paper_authors` references `research_papers`, you cannot drop `research_papers` first. Dropping in reverse dependency order avoids constraint errors.
 
-**Hint:** Use `BEGIN ... EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;` for safe drops. Error code `-942` means "table does not exist" — catching it makes the drop idempotent.
+**Hint:** Use `BEGIN ... EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;` for safe drops. Error code `-942` means "table does not exist" — catching it makes the drop idempotent. Separate each PL/SQL block and the final CREATE statement with `/`.
 
 **Complete solution:**
 
 ```python
-def create_research_papers_table(conn, embedding_dim=768):
-    with conn.cursor() as cur:
-        # Drop in reverse dependency order
-        for table in ['paper_similarities', 'paper_authors', 'authors', 'research_papers']:
-            cur.execute(f"""
-                BEGIN
-                    EXECUTE IMMEDIATE 'DROP TABLE {table} CASCADE CONSTRAINTS PURGE';
-                EXCEPTION
-                    WHEN OTHERS THEN
-                        IF SQLCODE != -942 THEN RAISE; END IF;
-                END;
-            """)
-
-        cur.execute(f"""
-            CREATE TABLE research_papers (
-                arxiv_id    VARCHAR2(50)  PRIMARY KEY,
-                title       VARCHAR2(500) NOT NULL,
-                abstract    CLOB,
-                text        CLOB,
-                embedding   VECTOR({embedding_dim}, FLOAT32)
-            )
-        """)
-    conn.commit()
-    print("Table research_papers created successfully")
+ddl = f"""
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE paper_similarities';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE paper_authors';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE authors';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE research_papers CASCADE CONSTRAINTS PURGE';
+EXCEPTION WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+CREATE TABLE research_papers (
+    arxiv_id    VARCHAR2(255)  PRIMARY KEY,
+    title       VARCHAR2(4000),
+    abstract    VARCHAR2(4000),
+    text        CLOB,
+    embedding   VECTOR({dim}, FLOAT32)
+)
+TABLESPACE USERS
+"""
 ```
 
-**Key concept:** The `VECTOR({embedding_dim}, FLOAT32)` column type tells Oracle the exact dimension and precision of your vectors. This enables Oracle to validate vectors on insert and optimise storage. If you insert a vector with the wrong dimension, Oracle will reject it — catching bugs early.
+The next cell splits on `/` and executes each block, then commits:
+
+```python
+with conn.cursor() as cur:
+    for stmt in ddl.split("/"):
+        if stmt.strip():
+            cur.execute(stmt)
+conn.commit()
+```
+
+**Key concept:** The `VECTOR({dim}, FLOAT32)` column type tells Oracle the exact dimension and precision of your vectors. This enables Oracle to validate vectors on insert and optimise storage. If you insert a vector with the wrong dimension, Oracle will reject it — catching bugs early.
 
 ## Data Ingestion
 

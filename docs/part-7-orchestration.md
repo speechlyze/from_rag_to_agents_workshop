@@ -40,7 +40,15 @@ Define the orchestrator that uses `agent.as_tool()` to register specialists as c
 ```python
 orchestrator_agent = Agent(
     name="research_assistant_orchestrator",
-    instructions="...",
+    instructions=(
+        "You are a Research Orchestrator responsible for coordinating information retrieval.\n\n"
+        "RULES:\n"
+        "1. ALWAYS use translate_to_research_papers when a query mentions research papers, studies, or findings.\n"
+        "2. ALWAYS use translate_to_research_conversations when a query mentions previous discussions.\n"
+        "3. If a query requests BOTH, use BOTH tools in sequence.\n"
+        "4. NEVER provide summaries without using your tools.\n"
+        "5. After retrieving, synthesize into a cohesive summary with citations."
+    ),
     tools=[
         research_paper_agent.as_tool(
             tool_name="translate_to_research_papers",
